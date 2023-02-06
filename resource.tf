@@ -1,6 +1,6 @@
 resource "azurerm_container_registry" "acr" {
-  name                          = var.acr_name
-  resource_group_name           = var.rg_name
+  name                          = var.name
+  resource_group_name           = var.resource_group_name
   location                      = var.location
   sku                           = var.sku
   admin_enabled                 = var.admin_enabled
@@ -75,7 +75,7 @@ resource "azurerm_container_registry" "acr" {
 resource "azurerm_container_registry_scope_map" "scope_map" {
   for_each                = var.scope_map != null ? { for k, v in var.scope_map : k => v if v != null } : {}
   name                    = format("%s", each.key)
-  resource_group_name     = var.rg_name
+  resource_group_name     = var.resource_group_name
   container_registry_name = azurerm_container_registry.acr.name
   actions                 = each.value["actions"]
 }
@@ -83,7 +83,7 @@ resource "azurerm_container_registry_scope_map" "scope_map" {
 resource "azurerm_container_registry_token" "main" {
   for_each                = var.scope_map != null ? { for k, v in var.scope_map : k => v if v != null } : {}
   name                    = replace(format("%s", "${each.key}-token"), "/-scope/", "")
-  resource_group_name     = var.rg_name
+  resource_group_name     = var.resource_group_name
   container_registry_name = azurerm_container_registry.acr.name
   scope_map_id            = element([for k in azurerm_container_registry_scope_map.scope_map : k.id], 0)
   enabled                 = true

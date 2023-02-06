@@ -1,4 +1,4 @@
-variable "acr_name" {
+variable "name" {
   type = string
 }
 
@@ -6,7 +6,7 @@ variable "location" {
   type = string
 }
 
-variable "rg_name" {
+variable "resource_group_name" {
   type = string
 }
 

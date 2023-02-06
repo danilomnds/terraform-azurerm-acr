@@ -23,9 +23,9 @@ Note: The `?ref=***` refers a tag on the git module repo.
 ```hcl
 module "<acr-name>" {
   source = "git::https://github.com/danilomnds/terraform-azurerm-acr?ref=v1.0.0"
-  acr_name = "<acr-name>"
+  name = "<acr-name>"
   location = "<location>"
-  rg_name  = "<resource-group-name>"
+  resource_group_name  = "<resource-group-name>"
   sku      = "<Basic/Standard/Premium>"  
   tags = {
     "key1" = "value1"
@@ -91,9 +91,9 @@ module "<acr-name>" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| acr_name | ACR Name | `string` | n/a | `Yes` |
+| name | ACR Name | `string` | n/a | `Yes` |
 | location | azure region | `string` | n/a | `Yes` |
-| rg_name | resource group where the ACR will be placed | `string` | n/a | `Yes` |
+| resource_group_name | resource group where the ACR will be placed | `string` | n/a | `Yes` |
 | sku | acr sku | `string` | n/a | `Yes` |
 | admin_enabled | enables admin user | `bool` | `false` | No |
 | public_network_access_enabled | enables public access | `bool` | `false` | No |
