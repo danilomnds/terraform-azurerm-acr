@@ -1,7 +1,7 @@
-output "acr_name" {
+output "name" {
   value = azurerm_container_registry.acr.name
 }
 
-output "acr_id" {
+output "id" {
   value = azurerm_container_registry.acr.id
 }

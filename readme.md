@@ -9,7 +9,8 @@ Module developed to standardize the ACR creation.
 
 | Module Version | Terraform Version | AzureRM Version |
 |----------------|-------------------| --------------- |
-| v1.0.0       | v1.3.6 | 3.37.0        |
+| v1.0.0         | v1.3.6            | 3.37.0          |
+| v2.0.0         | v1.9.8            | 4.9.0           |
 
 ## Specifying a version
 
@@ -18,12 +19,12 @@ By defining the `?ref=***` in the the URL, you can define the version of the mod
 
 Note: The `?ref=***` refers a tag on the git module repo.
 
-## Use case
+## Shared use case
 
 ```hcl
-module "<acr-name>" {
-  source = "git::https://github.com/danilomnds/terraform-azurerm-acr?ref=v1.0.0"
-  name = "<acr-name>"
+module "acrsystemenvid" {
+  source = "git::https://github.com/danilomnds/terraform-azurerm-acr?ref=v2.0.0"
+  name = "<acr-name>" # acrsystemprd1
   location = "<location>"
   resource_group_name  = "<resource-group-name>"
   sku      = "<Basic/Standard/Premium>"  
@@ -34,19 +35,13 @@ module "<acr-name>" {
   # default no replication. Please order the alphabetically by location.
   georeplications = [
     {
-      location                = "<brazilsoutheast>"
-      zone_redundancy_enabled = <false>
+      location                = "<brazilsoutheast>"      
     },
     {
       location                = "<eastus>"
       zone_redundancy_enabled = <false>
     }
-  ]
-  # default 7/enable = false
-  retention_policy = {
-    days    = <15>
-    enabled = <true>
-  }
+  ]  
   # default null
   identity = {
     type         = "<UserAssigned/SystemAssigned/SystemAssigned, UserAssigned>"
@@ -58,66 +53,136 @@ module "<acr-name>" {
     ip_rule = [
       {
         ip_range = "49.204.225.49/32"
-      },
-    ]
-    virtual_network = [
-      {
-        subnet_id = "full resource id of the subnet 1"
-      },
-      {
-        subnet_id = "full resource id of the subnet 2"
       }
-    ]
+    ]  
   }
   # optional
   scope_map = {
-    <scope-map-name1> = {
+    <scope-map-name> = {
       actions = [
-        "repositories/repo1/image/content/read",
-        "repositories/repo1/image/content/delete"
+        "repositories/repo/content/read",
+        "repositories/repo/content/delete"
       ]
-    },    
-    <scope-map-name2> = {
+    },
+    wso2fqa-scope = {
       actions = [
-        "repositories/repo2/image/content/read",
-        "repositories/repo2/image/content/delete"
+        "repositories/wso2fqa/redis/content/read",
+        "repositories/wso2fqa/redis/content/delete"
       ]
     }
   }
+  # the rbac for shared acr grantees only reader on ACR scope. The pull/push permissions are granted on scope_map level
+  azure_ad_groups = ["group id 1"]
+  acr_shared_rbac = true 
+}
+output "name" {
+  value = module.acrsystemenvid.name
+}
+output "id" {
+  value = module.acrsystemenvid.id
 }
 ```
+
+## Dedicated use case
+
+```hcl
+module "acrsystemenvid" {
+  source = "git::https://github.com/danilomnds/terraform-azurerm-acr?ref=v2.0.0"
+  name = "<acr-name>" acrsystemprd1
+  location = "<location>"
+  resource_group_name  = "<resource-group-name>"
+  sku      = "<Basic/Standard/Premium>"  
+  tags = {
+    "key1" = "value1"
+    "key2" = "value2"    
+  }
+  # default no replication. Please order the alphabetically by location.
+  georeplications = [
+    {
+      location                = "<brazilsoutheast>"      
+    },
+    {
+      location                = "<eastus>"
+      zone_redundancy_enabled = <false>
+    }
+  ]  
+  # default null
+  identity = {
+    type         = "<UserAssigned/SystemAssigned/SystemAssigned, UserAssigned>"
+    identity_ids = ["<full resource id of the managed identity>"]
+  }
+  # default no network rules
+  network_rule_set = {
+    default_action = "Deny"
+    ip_rule = [
+      {
+        ip_range = "49.204.225.49/32"
+      }
+    ]  
+  }
+  # optional
+  scope_map = {
+    <scope-map-name> = {
+      actions = [
+        "repositories/repo/content/read",
+        "repositories/repo/content/delete"
+      ]
+    },
+    # A TIM use case
+    wso2fqa-scope = {
+      actions = [
+        "repositories/wso2fqa/redis/content/read",
+        "repositories/wso2fqa/redis/content/delete"
+      ]
+    }
+  }
+  # the rbac for dedicated acr grantees pull, push and delete at ACR level.
+  azure_ad_groups = ["group id 1"]
+  acr_dedicated_rbac = true 
+}
+output "name" {
+  value = module.acrsystemenvid.name
+}
+output "id" {
+  value = module.acrsystemenvid.id
+}
+```
+
 
 ## Input variables
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | name | ACR Name | `string` | n/a | `Yes` |
-| location | azure region | `string` | n/a | `Yes` |
 | resource_group_name | resource group where the ACR will be placed | `string` | n/a | `Yes` |
+| location | azure region | `string` | n/a | `Yes` |
 | sku | acr sku | `string` | n/a | `Yes` |
 | admin_enabled | enables admin user | `bool` | `false` | No |
-| public_network_access_enabled | enables public access | `bool` | `false` | No |
+| tags | tags for the acr| `map(string)` | `{}` | No |
+| georeplications | locations where the container registry should be geo-replicated | `list(object({}))` | n/a | No |
+| network_rule_set | manages network rules for ACR | `object({})` | n/a | No |
+| public_network_access_enabled | Whether public network access is allowed for the container registry | `bool` | `false` | No |
+| quarantine_policy_enabled | Boolean value that indicates whether quarantine policy is enabled | `bool` | `false` | No |
+| retention_policy_in_days | The number of days to retain and untagged manifest after which it gets purged | `number` | `7` | No |
+| trust_policy_enabled | indicates whether the policy is enabled | `bool` | `false` | No |
 | zone_redundancy_enabled | enables zone redundancy | `bool` | `false` | No |
 | export_policy_enabled | enables export policy | `bool` | `true` | No |
+| identity | specifies the type of managed identity that should be configured on this ACR | `object({})` | n/a | No |
+| encryption | encrypties registry using a customer-managed key | `object({})` | n/a | No |
 | anonymous_pull_enabled | allows anonymous unauthenticated pull | `bool` | `false` | No |
 | data_endpoint_enabled | enables dedicated data endpoints | `bool` | `false` | No |
 | network_rule_bypass_option | allows trusted Azure services to access a network restricted ACR | `string` | `AzureServices` | No |
-| georeplications | locations where the container registry should be geo-replicated | `list(object)` | n/a | No |
-| network_rule_set | manages network rules for ACR | `object()` | n/a | No |
-| retention_policy | sets a retention policy for untagged manifests | `object()` | n/a | No |
-| trust_policy | indicates whether the policy is enabled | `bool` | `false` | No |
-| identity | specifies the type of managed identity that should be configured on this ACR | `object()` | n/a | No |
-| encryption | encrypties registry using a customer-managed key | `object()` | n/a | No |
-| tags | tags for the acr| `map(string)` | `{}` | No |
 | scope_map | specifies the scopes and repos that will be created. It also creates a token for each scope map  | `map(object())` | n/a | No |
-
+| azure_ad_groups | list of azure AD groups that will have access to the resources | `list` | `[]` | No |
+| acr_shared_rbac | grantees read access on ACR level. Pull and push will be granted on scope_map level | `bool` | `false` | No |
+| acr_dedicated_rbac | grantees read, pull, push and delete on ACR level | `bool` | `false` | No |
 
 ## Output variables
 
 | Name | Description |
 |------|-------------|
-| acr_name | acr name |
-| acr_id | acr id |
+| name | acr name |
+| id | acr id |
 
 ## Documentation
 
